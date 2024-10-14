@@ -57,7 +57,7 @@ vim.opt.splitbelow = true
 --  See `:help 'list'`
 --  and `:help 'listchars'`
 vim.opt.list = true
-vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
+vim.opt.listchars = { tab = '  ', trail = '·', nbsp = '␣' }
 
 -- Preview substitutions live, as you type!
 vim.opt.inccommand = 'split'
@@ -267,12 +267,20 @@ require('lazy').setup({
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
         --
-        -- defaults = {
-        --   mappings = {
-        --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
-        --   },
-        -- },
-        -- pickers = {}
+        defaults = {
+          --   mappings = {
+          --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
+          --   },
+          file_ignore_patterns = {
+            'node_modules',
+            '.git',
+          },
+        },
+        pickers = {
+          find_files = {
+            hidden = true,
+          },
+        },
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -532,6 +540,17 @@ require('lazy').setup({
             -- by the server configuration above. Useful when disabling
             -- certain features of an LSP (for example, turning off formatting for tsserver)
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+
+            -- FIXME: workaround for https://github.com/neovim/neovim/issues/28058
+            for _, v in pairs(server) do
+              if type(v) == 'table' and v.workspace then
+                v.workspace.didChangeWatchedFiles = {
+                  dynamicRegistration = false,
+                  relativePatternSupport = false,
+                }
+              end
+            end
+
             require('lspconfig')[server_name].setup(server)
           end,
         },
@@ -695,16 +714,17 @@ require('lazy').setup({
     'catppuccin/nvim',
     name = 'catppuccin',
     priority = 1000, -- Make sure to load this before all the other start plugins.
-    init = function()
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'catppuccin-mocha'
-
-      -- You can configure highlights by doing something like:
-      vim.cmd.hi 'Comment gui=none'
-    end,
   },
+  { 'rebelot/kanagawa.nvim', name = 'kanagawa' },
+  { 'EdenEast/nightfox.nvim', name = 'nightfox', priority = 1000 },
+  { 'embark-theme/vim', name = 'embark', priority = 100 },
+  { 'bluz71/vim-nightfly-colors', name = 'nightfly', lazy = false, priority = 1000 },
+  { 'rose-pine/neovim', name = 'rose-pine' },
+  { 'olivercederborg/poimandres.nvim', name = 'poimandres' },
+  { 'oxfist/night-owl.nvim', name = 'night-owl' },
+  { 'marko-cerovac/material.nvim', name = 'material' },
+  { 'folke/tokyonight.nvim', name = 'tokyonight' },
+  { 'dracula/vim', name = 'dracula' },
 
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
@@ -727,20 +747,23 @@ require('lazy').setup({
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
 
-      -- Simple and easy statusline.
-      --  You could remove this setup call if you don't like it,
-      --  and try some other statusline plugin
-      local statusline = require 'mini.statusline'
-      -- set use_icons to true if you have a Nerd Font
-      statusline.setup { use_icons = vim.g.have_nerd_font }
+      -- -- Simple and easy statusline.
+      -- --  You could remove this setup call if you don't like it,
+      -- --  and try some other statusline plugin
+      -- local statusline = require 'mini.statusline'
+      -- -- set use_icons to true if you have a Nerd Font
+      -- statusline.setup { use_icons = vim.g.have_nerd_font }
+      --
+      -- -- You can configure sections in the statusline by overriding their
+      -- -- default behavior. For example, here we set the section for
+      -- -- cursor location to LINE:COLUMN
+      -- ---@diagnostic disable-next-line: duplicate-set-field
+      -- statusline.section_location = function()
+      --   return '%2l:%-2v'
+      -- end
 
-      -- You can configure sections in the statusline by overriding their
-      -- default behavior. For example, here we set the section for
-      -- cursor location to LINE:COLUMN
-      ---@diagnostic disable-next-line: duplicate-set-field
-      statusline.section_location = function()
-        return '%2l:%-2v'
-      end
+      -- minimap
+      require('mini.map').setup()
 
       -- ... and there is more!
       --  Check out: https://github.com/echasnovski/mini.nvim
@@ -750,7 +773,7 @@ require('lazy').setup({
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'vim', 'vimdoc' },
+      ensure_installed = { 'go', 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'vim', 'vimdoc' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -801,6 +824,55 @@ require('lazy').setup({
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
   --    For additional information, see `:help lazy.nvim-lazy.nvim-structuring-your-plugins`
   { import = 'custom.plugins' },
+  {
+    'romgrk/barbar.nvim',
+    init = function()
+      local map = vim.keymap.set
+      local opts = { noremap = true, silent = true }
+
+      -- Move to previous/next
+      map('n', '<A-,>', '<Cmd>BufferPrevious<CR>', opts)
+      map('n', '<A-.>', '<Cmd>BufferNext<CR>', opts)
+      -- Re-order to previous/next
+      map('n', '<A-<>', '<Cmd>BufferMovePrevious<CR>', opts)
+      map('n', '<A->>', '<Cmd>BufferMoveNext<CR>', opts)
+      -- Goto buffer in position...
+      map('n', '<A-1>', '<Cmd>BufferGoto 1<CR>', opts)
+      map('n', '<A-2>', '<Cmd>BufferGoto 2<CR>', opts)
+      map('n', '<A-3>', '<Cmd>BufferGoto 3<CR>', opts)
+      map('n', '<A-4>', '<Cmd>BufferGoto 4<CR>', opts)
+      map('n', '<A-5>', '<Cmd>BufferGoto 5<CR>', opts)
+      map('n', '<A-6>', '<Cmd>BufferGoto 6<CR>', opts)
+      map('n', '<A-7>', '<Cmd>BufferGoto 7<CR>', opts)
+      map('n', '<A-8>', '<Cmd>BufferGoto 8<CR>', opts)
+      map('n', '<A-9>', '<Cmd>BufferGoto 9<CR>', opts)
+      map('n', '<A-0>', '<Cmd>BufferLast<CR>', opts)
+      -- Pin/unpin buffer
+      map('n', '<A-p>', '<Cmd>BufferPin<CR>', opts)
+      -- Close buffer
+      map('n', '<A-c>', '<Cmd>BufferClose<CR>', opts)
+      -- Wipeout buffer
+      --                 :BufferWipeout
+      -- Close commands
+      --                 :BufferCloseAllButCurrent
+      --                 :BufferCloseAllButPinned
+      --                 :BufferCloseAllButCurrentOrPinned
+      --                 :BufferCloseBuffersLeft
+      --                 :BufferCloseBuffersRight
+      -- Magic buffer-picking mode
+      map('n', '<C-p>', '<Cmd>BufferPick<CR>', opts)
+      -- Sort automatically by...
+      map('n', '<Space>bb', '<Cmd>BufferOrderByBufferNumber<CR>', opts)
+      map('n', '<Space>bn', '<Cmd>BufferOrderByName<CR>', opts)
+      map('n', '<Space>bd', '<Cmd>BufferOrderByDirectory<CR>', opts)
+      map('n', '<Space>bl', '<Cmd>BufferOrderByLanguage<CR>', opts)
+      map('n', '<Space>bw', '<Cmd>BufferOrderByWindowNumber<CR>', opts)
+
+      -- Other:
+      -- :BarbarEnable - enables barbar (enabled by default)
+      -- :BarbarDisable - very bad command, should never be used
+    end,
+  },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -825,3 +897,5 @@ require('lazy').setup({
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+
+vim.cmd.colorscheme 'dracula'
