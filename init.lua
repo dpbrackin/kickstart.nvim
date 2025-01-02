@@ -24,6 +24,8 @@ vim.opt.mouse = 'a'
 -- Don't show the mode, since it's already in the status line
 vim.opt.showmode = false
 
+vim.o.termguicolors = true
+
 -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
@@ -784,7 +786,7 @@ require('lazy').setup({
   { 'oxfist/night-owl.nvim', name = 'night-owl' },
   { 'marko-cerovac/material.nvim', name = 'material' },
   { 'folke/tokyonight.nvim', name = 'tokyonight' },
-  { 'dracula/vim', name = 'dracula' },
+  { 'dpbrackin/dracula.vim', name = 'dracula' },
 
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
@@ -957,3 +959,4 @@ require('lazy').setup({
 -- vim: ts=2 sts=2 sw=2 et
 
 vim.cmd.colorscheme 'dracula'
+vim.o.bg = 'dark'
